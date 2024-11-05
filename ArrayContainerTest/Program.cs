@@ -1,147 +1,129 @@
-﻿using System.IO;
+﻿using System;
+using System.Collections.Generic;
 
-
-
-
-
-
-
-Dictionary<string, Object> container =
-    new Dictionary<string, Object>();
-
-
-
-
-
-container.Add("one", new Dictionary<string, Object>
+class Program
 {
-    { "two", 3 },
-    { "four", new List<Object> {5,6,7} },
-});
-container.Add("eight", new Dictionary<string, Object>
-{
-    { "nine",  new Dictionary<string, Object>
-        {
-            { "ten",11 }
-        }
-    }
-});
+    static Dictionary<string, Object> container = new Dictionary<string, Object>();
+    static Dictionary<string, Object> containerFlat = new Dictionary<string, Object>();
+    static Dictionary<string, Object> containerUnflated = new Dictionary<string, Object>();
 
-
-Dictionary<string, Object> containerFlat =
-    new Dictionary<string, Object>();
-
-void FlattenContainer(Dictionary<string, Object> container, string parentKey = "")
-{
-    foreach (var kvp in container)
+    static void Main()
     {
-        string currentKey = string.IsNullOrEmpty(parentKey) ? kvp.Key : $"{parentKey}/{kvp.Key}";
-
-        if (kvp.Value is Dictionary<string, Object> next)
+        container.Add("one", new Dictionary<string, Object>
         {
-            FlattenContainer(next, currentKey);
-        }
-        else if (kvp.Value is List<Object> list)
+            { "two", 3 },
+            { "four", new List<Object> {5, 6, 7} }
+        });
+
+        container.Add("eight", new Dictionary<string, Object>
         {
-            for (int i = 0; i < list.Count; i++)
-            {
-                containerFlat[$"{currentKey}/{i}"] = list[i];
-            }
-        }
-        else
-        {
-            containerFlat.Add(currentKey, (kvp.Value));
-        }
-    }
-}
-
-FlattenContainer(container);
-
-Dictionary<string, Object> containerUnflated =
-    new Dictionary<string, Object>();
-
-void UnflattenContainer(Dictionary<string, Object> containerFlat)
-{
-    foreach (var kvp in containerFlat)
-    {
-        string[] parts = kvp.Key.Split('/');
-        object value = kvp.Value;
-
-        Dictionary<string, Object> currentContainer = containerUnflated;
-
-        for (int i = 0; i < parts.Length; i++)
-        {
-            string part = parts[i];
-
-            if (i == parts.Length - 1)
-            {
-                if (int.TryParse(part, out int index))
+            { "nine", new Dictionary<string, Object>
                 {
-                    if (!(currentContainer.ContainsKey(parts[i - 1]) && currentContainer[parts[i - 1]] is List<object> list))
-                    {
-                        list = new List<object>();
-                        currentContainer[parts[i - 1]] = list;
-                    }
-                    list.Insert(index, value);
+                    { "ten", 11 }
                 }
-                else
+            }
+        });
+
+        FlattenContainer(container);
+        UnflattenContainer(containerFlat);
+
+
+        Console.WriteLine("Impressão de container unidimensional convertido");
+        PrintDictionary(containerFlat);
+
+        Console.WriteLine();
+        Console.WriteLine("Impressão de container multidimensional convertido");
+        PrintDictionary(containerUnflated);
+    }
+
+    static void FlattenContainer(Dictionary<string, Object> container, string parentKey = "")
+    {
+        foreach (var kvp in container)
+        {
+            string currentKey = string.IsNullOrEmpty(parentKey) ? kvp.Key : $"{parentKey}/{kvp.Key}";
+
+            if (kvp.Value is Dictionary<string, Object> next)
+            {
+                FlattenContainer(next, currentKey);
+            }
+            else if (kvp.Value is List<Object> list)
+            {
+                for (int i = 0; i < list.Count; i++)
                 {
-                    currentContainer[part] = value;
+                    containerFlat[$"{currentKey}/{i}"] = list[i];
                 }
             }
             else
             {
-                if (!currentContainer.ContainsKey(part) || !(currentContainer[part] is Dictionary<string, Object> nextContainer))
-                {
-                    nextContainer = new Dictionary<string, Object>();
-                    currentContainer[part] = nextContainer;
-                }
-
-                currentContainer = nextContainer;
+                containerFlat[currentKey] = kvp.Value;
             }
         }
     }
 
-}
-
-
-
-//foreach (var kvp in containerFlat)
-//{
-//    Console.WriteLine($"{kvp.Key}: {kvp.Value}");
-//}
-
-UnflattenContainer(containerFlat);
-
-//foreach (var kvp in containerUnflated)
-//{
-//    Console.WriteLine($"{kvp.Key}: {kvp.Value}");
-//}
-
-
-static void PrintDictionary(Dictionary<string, Object> dict, int indent = 0)
-{
-    string indentSpaces = new string(' ', indent);
-
-    foreach (var kvp in dict)
+    static void UnflattenContainer(Dictionary<string, Object> containerFlat)
     {
-        Console.Write(indentSpaces + kvp.Key + ": ");
-        if (kvp.Value is Dictionary<string, Object> nestedDict)
+        foreach (var kvp in containerFlat)
         {
-            Console.WriteLine();
-            PrintDictionary((Dictionary<string, Object>)kvp.Value, indent + 4);
+            string[] parts = kvp.Key.Split('/');
+            object value = kvp.Value;
+
+            Dictionary<string, Object> currentContainer = containerUnflated;
+
+            for (int i = 0; i < parts.Length; i++)
+            {
+                string part = parts[i];
+
+                if (i == parts.Length - 1)
+                {
+                    if (int.TryParse(part, out int index))
+                    {
+                        if (!(currentContainer.ContainsKey(parts[i - 1]) && currentContainer[parts[i - 1]] is List<object> list))
+                        {
+                            list = new List<object>();
+                            currentContainer[parts[i - 1]] = list;
+                        }
+                        list.Insert(index, value);
+                    }
+                    else
+                    {
+                        currentContainer[part] = value;
+                    }
+                }
+                else
+                {
+                    if (!currentContainer.ContainsKey(part) || !(currentContainer[part] is Dictionary<string, Object> nextContainer))
+                    {
+                        nextContainer = new Dictionary<string, Object>();
+                        currentContainer[part] = nextContainer;
+                    }
+
+                    currentContainer = nextContainer;
+                }
+            }
         }
-        else if (kvp.Value is List<Object> list)
+    }
+
+    static void PrintDictionary(Dictionary<string, Object> dict, int indent = 0)
+    {
+        string indentSpaces = new string(' ', indent);
+
+        foreach (var kvp in dict)
         {
-            Console.WriteLine("[" + string.Join(", ", list) + "]");
-        }
-        else
-        {
-            Console.WriteLine(kvp.Value);
+            Console.Write(indentSpaces + kvp.Key + ": ");
+
+            if (kvp.Value is Dictionary<string, Object> nestedDict)
+            {
+                Console.WriteLine();
+                PrintDictionary(nestedDict, indent + 4);
+            }
+            else if (kvp.Value is List<Object> list)
+            {
+                Console.WriteLine("[" + string.Join(", ", list) + "]");
+            }
+            else
+            {
+                Console.WriteLine(kvp.Value);
+            }
         }
     }
 }
-
-
-
-PrintDictionary(containerUnflated);
